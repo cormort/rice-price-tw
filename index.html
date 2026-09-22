@@ -439,6 +439,10 @@ const seasonPanel = (y0, y1) => {
   return out;
 };
 
+/* ---------- 資料截止日：以 DATA.asOf 為單一來源，避免與內文手動維護的日期脫節 ---------- */
+$('#asOfDate').textContent = DATA.asOf.date;
+$('#asOfRange').textContent = DATA.asOf.y115Range;
+
 /* ---------- 分頁 ---------- */
 const TABS = [['p-trend', '市價趨勢'], ['p-policy', '公糧 vs 市價'], ['p-tiers', '分級機制'], ['p-stats', '統計檢驗'], ['p-about', '資料與方法']];
 $('#nav').innerHTML = TABS.map(([id, t]) => `<button class="tb" data-t="${id}">${t}</button>`).join('');
@@ -600,7 +604,7 @@ function drawPolicy() {
     輔導 <b>${g(last.guid + s - last.mk)}</b>、餘糧 <b>${fu(last.surp + s - last.mk)}</b>。
     <br><b>交叉年（價差由正翻負）：</b>計畫 ${cross(gapDs[0].v) == null ? '從未翻負' : cross(gapDs[0].v) + ' 年'}、
     輔導 ${xg == null ? '從未翻負' : '<b>' + xg + ' 年</b>'}、餘糧 ${sg == null ? '從未翻負' : sg + ' 年'}。
-    這三個年份就是「公糧划不划算」的轉折點 —— 餘糧早在 ${sg} 年就翻負，輔導則到 ${xg} 年才被市價追上。
+    ${sg != null && xg != null ? `這三個年份就是「公糧划不划算」的轉折點 —— 餘糧早在 ${sg} 年就翻負，輔導則到 ${xg} 年才被市價追上。` : ''}
     市價與各級距的相對位置會隨是否納入補助而不同；本站僅呈現名目價差，不據此判定政策調整的單一原因。`;
 }
 $('#cfgSub').onchange = drawPolicy; $('#cfgArea').onchange = drawPolicy;
@@ -1009,8 +1013,7 @@ function drawScatter() {
   const res = Y.map((y, k) => y - X[k].reduce((t, v, j) => t + v * B[j], 0)), sse = res.reduce((t, e) => t + e * e, 0);
   const s2 = sse / (nG - 3), myG = Y.reduce((a, b) => a + b) / nG, R2 = 1 - sse / Y.reduce((t, y) => t + (y - myG) ** 2, 0);
   const tv = (i) => B[i] / Math.sqrt(s2 * Inv[i][i]);
-  // 迴歸只用同時具備 qty/share/prod 的年度，故實際筆數小於 G.length
-  const nOls = G.filter(d => V.qty(d) != null && V.share(d) != null && V.prod(d) != null).length;
+  const nOls = G.length;   // G 在上方已篩選 qty/share/prod 均存在，此處毋須再濾一次
   const dfOls = nOls - 3, tcOls = tCrit(dfOls);
   const olsRow = G.map((d, k) => [d.y, res[k]]).filter(r => r[1] != null);
   $('#olsNote').innerHTML = `<b>控制產量後（100–113 年，實際 n=${nOls}）</b>：輔導價差 ↔ 收購量偏相關 <b>${pr >= 0 ? '+' : ''}${pr.toFixed(3)}</b>。
@@ -1172,8 +1175,8 @@ function drawDiff() {
 function drawFE() {
   const F = COUNTY_FE;
   // 縣市 FE（15）+ 期作 FE（30）共吸收 44 個參數，故 df = n − 44
-  const sig = (m) => { const s = Math.abs(m.t) / tCrit(m.n - 44);
-    return s >= 3.29 ? '***' : s >= 2.58 ? '**' : s >= 1.96 ? '*' : ''; };
+  const sig = (m) => { const df = m.n - 44, t = Math.abs(m.t);
+    return t >= tCrit(df, 0.001) ? '***' : t >= tCrit(df, 0.01) ? '**' : t >= tCrit(df, 0.05) ? '*' : ''; };
   const row = (x) => `<tr><td style="text-align:left">${x.l}</td><td>${x.m.b.toFixed(3)}${sig(x.m)}</td><td>${x.m.se.toFixed(3)}</td><td>${x.m.t.toFixed(2)}</td><td>${x.m.r2.toFixed(3)}</td><td>${x.m.n}</td><td style="text-align:left">${x.n}</td></tr>`;
   $('#tFE').innerHTML = '<thead><tr><th>設定</th><th>β（價差）</th><th>群聚 SE</th><th>t</th><th>R²<span style="font-weight:400">（含固定效果，非價差貢獻）</span></th><th>n</th><th>說明<span style="font-weight:400">（β 上標＝相對 df 的 t 門檻）</span></th></tr></thead><tbody>'
     + F.specs.map(row).join('') + '</tbody>';
@@ -1251,6 +1254,12 @@ function drawFE() {
     上圖橘點就是補回來的那 10 個期作 —— 它們明顯把迴歸線壓平了。
     <br><br><b>餘糧同樣不顯著</b>（β = ${su.b.toFixed(3)}、t = ${su.t.toFixed(2)}）。本次首度取得縣市層級的餘糧收購量 —— 先前的資料集根本沒有這一欄。
     餘糧在全國年度資料上是本站<b>看起來最乾淨</b>的價格訊號，在縣市層級卻不成立；這組對比整理在下方的<b>餘糧散佈圖結論卡</b>。
+    <br><br><b>穩健性檢查：換一種估計方法會不會不一樣？</b>上面的餘糧迴歸把「該期作該縣市完全沒收餘糧」的 31 筆觀測值排除在外（ln(0) 無意義），
+    這 31 筆的價差平均比留下來的 383 筆低了整整 2 元／公斤，理論上可能低估價格效果。改用可以吃 0 值的 <b>PPML</b>（Poisson 虛擬最大概似法，同樣控制縣市與期作）重跑，
+    加回這 31 筆後 β 從 0.182 掉到 <b>0.014</b>（t 從 0.81 掉到 <b>0.27</b>）——結論沒有反轉，反而更不顯著。
+    但這不代表原本的疑慮是錯的：換成 PPML 等於換了個新問題——餘糧收購量嚴重右偏，最大的 10 筆（僅占樣本 2.4%）就佔了總噸數的四分之一，
+    且集中在 107–110 年、價差本來就是正的雲林、嘉義、彰化，PPML 的加權估計等於被這幾筆巨量觀測主導，稀釋了其他縣市的訊號。
+    兩種方法各有各的弱點，但都指向同一個結論：<b>本站現有資料無法穩健地把餘糧的價格效果估出來</b>。
     <br><br><b>關於上圖：</b>414 個點疊在一起時每個點都看不到，故改畫<b>密度方格</b>（等寬分箱、對數色階），
     並移除散點 —— <b>格子的位置與深淺才是訊息</b>；想知道某一格有幾筆、其中幾筆是新補回的，把游標移上去即可。
     <br><br><b>該怎麼理解這一整段？</b>公糧收購量的縣市差異，絕大部分由<b>產量規模與配額制度</b>決定；
