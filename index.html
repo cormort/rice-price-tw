@@ -231,15 +231,25 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
         <ul class="tight">
           <li><b>產量的同期關聯最強</b>：稻作總產量 vs 收購量 r = +0.85，在本站樣本中高於價格變數；未做因果識別。</li>
           <li><b>配額是硬上限</b>：114 年起計畫配額由 2,000 提高至 3,250 公斤／公頃，即使價差不大，量仍做大。</li>
-          <li><b>樣本少</b>：n=15，r 值只宜看方向與量級，不宜當預測模型。</li>
+          <li><b>樣本少</b>：主分析 n=14（100–113 年，同一價格制度），r 值只宜看方向與量級，不宜當預測模型。</li>
+          <li><b>共同趨勢</b>：改看逐年變動（一階差分）後，輔導價差 ↔ 收購量的 r 約減半；水準值 r 含有「一起漲跌」的成分。</li>
+          <li><b>餘糧有價格解釋不了的底量</b>：價差為負或接近 0 的年度，1 期餘糧仍收 5–8 萬公噸（見下方散佈圖）。</li>
         </ul>
         <div class="callout good">100 年第 1 期起公糧價格調高 3 元／公斤，年度收購量也由約 19.1 萬增至 38.6 萬公噸，呈現明顯的政策前後差異；惟同期總產量及其他條件亦有變動，不能將全部增幅解讀為調價的單一因果效果。</div>
       </div>
     </div>
     <div class="card">
       <h2>相關係數一覽</h2>
+      <p class="sub">由嚴到鬆三層檢驗：全樣本 → 同一制度（100–113 年）→ 逐年變動（差分，去除共同趨勢）。結論在越嚴格的欄位仍成立，才算站得住。</p>
       <div class="scroll"><table id="tStats"></table></div>
-      <div class="note">價格變數為稻穀稉種全國年平均；價差＝公糧輔導收購含補助名目價− 市價。相關係數與單位無關，切換單位不影響數值。</div>
+      <div class="note">99 年為舊價格制度（輔導 20 元），100 年起調升 3 元，為制度斷點，故主分析採 100–113 年。「年均」＝全年各月簡單平均；「收穫期」＝6–8 月（1 期作收購期間）平均。相關係數與單位無關。</div>
+      <div class="callout" id="olsNote"></div>
+    </div>
+    <div class="card">
+      <h2>散佈圖：餘糧價差 vs 1 期餘糧收購量 <span class="utag" id="uSur"></span></h2>
+      <p class="sub">100–113 年，市價採收穫期（6–8 月）稉種平均。紅點為價格解釋不了的年度。</p>
+      <div class="chartbox h340"><canvas id="cSurplus"></canvas></div>
+      <div class="note" id="surNote"></div>
     </div>
   </section>
 
@@ -318,7 +328,15 @@ const fu = (v, dp) => v == null ? '—' : du(v).toLocaleString(undefined,
 const fraw = (v, dp) => v == null ? '—' : v.toLocaleString(undefined,
   {minimumFractionDigits: dp ?? 0, maximumFractionDigits: dp ?? 0});
 const $ = (s) => document.querySelector(s);
+const avg = (a) => { const b = a.filter(v => v != null && Number.isFinite(v)); return b.length ? b.reduce((x, z) => x + z, 0) / b.length : null; };  // 缺值不計入分子分母
 const rocYear = (y) => `${y} (${y + 1911})`;
+
+const C_JAP = DATA.cols.indexOf('稻穀_稉種(蓬萊)');
+const harvestMk = (y) => avg(DATA.monthly.filter(d => d.y === y && d.m >= 6 && d.m <= 8).map(d => d.v[C_JAP]));  // 1 期作收購期間
+const corr = (a, b) => { const n = a.length, ma = a.reduce((x, y) => x + y) / n, mb = b.reduce((x, y) => x + y) / n;
+  let c = 0, va = 0, vb = 0; a.forEach((x, i) => { c += (x - ma) * (b[i] - mb); va += (x - ma) ** 2; vb += (b[i] - mb) ** 2; });
+  return c / Math.sqrt(va * vb); };
+const diff = (a) => a.slice(1).map((v, i) => v - a[i]);
 
 /* ---------- 分頁 ---------- */
 const TABS = [['p-trend', '市價趨勢'], ['p-policy', '公糧 vs 市價'], ['p-tiers', '分級機制'], ['p-stats', '統計檢驗'], ['p-about', '資料與方法']];
@@ -373,17 +391,18 @@ function drawTrend() {
   const labels = sub.map(d => `${d.y}/${String(d.m).padStart(2, '0')}`);
   const isPct = $('#chkPct').checked, showMean = $('#chkMean').checked;
   const base = {};
-  DATA.rets.forEach(r => { const v = monthly.filter(d => d.y === 112).map(d => d.v[colIdx(pre, r)]); base[r] = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; });
+  DATA.rets.forEach(r => { const v = monthly.filter(d => d.y === 112).map(d => d.v[colIdx(pre, r)]); base[r] = avg(v); });
   const short = {'稻穀_': '稻穀', '白米躉售_': '躉售', '白米零售_': '零售'}[pre];
 
   const ds = [];
-  DATA.rets.filter(r => picked.has(r)).forEach((r, i) => {
+  DATA.rets.filter(r => picked.has(r)).forEach((r) => {
+    const i = DATA.rets.indexOf(r);  // 顏色固定對應品種
     const raw = sub.map(d => d.v[colIdx(pre, r)]);
-    const data = isPct ? raw.map(v => base[r] ? +(v / base[r] * 100).toFixed(2) : null) : raw.map(v => du(v));
+    const data = isPct ? raw.map(v => v != null && base[r] ? +(v / base[r] * 100).toFixed(2) : null) : raw.map(v => du(v));
     ds.push({label: isPct ? `${r} (${short})` : r, data, borderColor: COLORS[i % 5], backgroundColor: COLORS[i % 5],
              borderWidth: 2.3, pointRadius: 0, pointHitRadius: 14, tension: .22, spanGaps: true});
     if (showMean && !isPct) {
-      const mean = raw.reduce((a, b) => a + b, 0) / raw.length;
+      const mean = avg(raw);
       ds.push({label: `${r} 選取期間平均`, data: labels.map(() => du(mean)), borderColor: COLORS[i % 5],
                borderDash: [6, 5], borderWidth: 1.3, pointRadius: 0, pointHitRadius: 0});
     }
@@ -404,7 +423,7 @@ function drawKPITrend() {
   $('#kpiTrend').innerHTML = items.map(([key, name]) => {
     const i = DATA.cols.indexOf(key);
     const AV = (y, ms) => { const a = monthly.filter(d => d.y === y && (!ms || ms.indexOf(d.m) >= 0)).map(d => d.v[i]);
-                            return a.length ? a.reduce((x, z) => x + z, 0) / a.length : null; };
+                            return avg(a); };
     const M115 = [];
     for (let mm = 1; mm <= DATA.asOf.y115Months; mm++) M115.push(mm);
     const last = AV(YEARS[YEARS.length - 1], M115), prev = AV(YEARS[YEARS.length - 2], M115);
@@ -419,7 +438,7 @@ function drawKPITrend() {
 function drawAnnual() {
   const cols = DATA.cols, ys = YEARS.slice(-7);
   const body = ys.map(y => {
-    const vals = cols.map((c, i) => { const a = monthly.filter(d => d.y === y).map(d => d.v[i]); return a.length ? a.reduce((x, z) => x + z, 0) / a.length : null; });
+    const vals = cols.map((c, i) => { return avg(monthly.filter(d => d.y === y).map(d => d.v[i])); });
     const part = y === YEARS[YEARS.length - 1];
     return `<tr${part ? ' style="background:#fff8e6"' : ''}><td><b>${rocYear(y)}</b>${part ? ' <span style="color:#c0392b;font-size:11.5px">◎年迄</span>' : ''}</td>${vals.map(v => `<td>${fu(v)}</td>`).join('')}</tr>`;
   }).join('');
@@ -438,9 +457,9 @@ function drawPolicy() {
   const gy = DATA.gov, labels = gy.map(d => d.y);
   const ds = [
     {label: '市場稻穀價（稉種）', data: gy.map(d => du(d.mk)), borderColor: '#c0392b', backgroundColor: '#c0392b', borderWidth: 2.8, pointRadius: 3.5, tension: .15},
-    {label: `${NM('計畫')}（26 元/公斤）`, data: gy.map(d => du(d.plan + sub)), borderColor: '#2471a3', borderDash: [7, 5], borderWidth: 2.1, pointRadius: 0},
-    {label: `${NM('輔導')}（23／24.5 元/公斤）`, data: gy.map(d => du(d.guid + sub)), borderColor: '#1e8449', borderDash: [7, 5], borderWidth: 2.1, pointRadius: 0},
-    {label: `${NM('餘糧')}（21.6 元/公斤）`, data: gy.map(d => du(d.surp + sub)), borderColor: '#b7950b', borderDash: [7, 5], borderWidth: 2.0, pointRadius: 0},
+    {label: `${NM('計畫')}（${fu(26 + sub)}）`, data: gy.map(d => du(d.plan + sub)), borderColor: '#2471a3', borderDash: [7, 5], borderWidth: 2.1, pointRadius: 0},
+    {label: `${NM('輔導')}（${fu(23 + sub)}／${fu(24.5 + sub)}）`, data: gy.map(d => du(d.guid + sub)), borderColor: '#1e8449', borderDash: [7, 5], borderWidth: 2.1, pointRadius: 0},
+    {label: `${NM('餘糧')}（${fu(21.6 + sub)}）`, data: gy.map(d => du(d.surp + sub)), borderColor: '#b7950b', borderDash: [7, 5], borderWidth: 2.0, pointRadius: 0},
   ];
   if ($('#cfgArea').checked) ds.push({label: '計畫收購價高於市價的差額', data: gy.map(d => du(d.plan + sub)),
     borderColor: 'rgba(36,113,163,.45)', borderWidth: 0, pointRadius: 0,
@@ -462,13 +481,16 @@ $('#cfgSub').onchange = drawPolicy; $('#cfgArea').onchange = drawPolicy;
 
 function drawPolicyTable() {
   const gy = DATA.gov, s = DATA.sub;
-  const head = `<thead><tr><th>年別</th><th>市場稻穀價</th><th>計畫價</th><th>輔導價</th><th>餘糧價</th><th>輔導含補助名目價</th><th>輔導價差</th><th>稻作總產量<br>(公噸)</th><th>公糧收購量<br>(公噸)</th><th>收購占比</th></tr>
-    <tr><th colspan="7" style="text-align:center;font-weight:400;color:#63696f">↑ 價格欄單位：${UL()}</th><th colspan="3" style="text-align:center;font-weight:400;color:#63696f">↑ 數量欄單位：公噸／％</th></tr></thead>`;
-  const body = gy.map(d => `<tr><td>${rocYear(d.y)}</td><td>${fu(d.mk)}</td><td>${fu(d.plan)}</td><td>${fu(d.guid)}</td><td>${fu(d.surp)}</td>
+  const head = `<thead><tr><th>年別</th><th>市場稻穀價<br>（年均）</th><th>收穫期市價<br>（6–8 月）</th><th>計畫價</th><th>輔導價</th><th>餘糧價</th><th>輔導含補助名目價</th><th>輔導價差</th><th>稻作總產量<br>(公噸)</th><th>公糧收購量<br>(公噸)</th><th>收購占比</th></tr>
+    <tr><th colspan="8" style="text-align:center;font-weight:400;color:#63696f">↑ 價格欄單位：${UL()}</th><th colspan="3" style="text-align:center;font-weight:400;color:#63696f">↑ 數量欄單位：公噸／％</th></tr></thead>`;
+  const body = gy.map(d => `<tr><td>${rocYear(d.y)}</td><td>${fu(d.mk)}</td><td>${fu(harvestMk(d.y))}</td><td>${fu(d.plan)}</td><td>${fu(d.guid)}</td><td>${fu(d.surp)}</td>
     <td>${fu(d.guid + s)}</td>
     <td style="color:${d.guid + s - d.mk >= 0 ? '#1e8449' : '#c0392b'};font-weight:600">${d.guid + s - d.mk >= 0 ? '+' : ''}${fu(d.guid + s - d.mk)}</td>
     <td>${d.prod ? fraw(d.prod) : '—'}</td><td>${d.qty ? fraw(d.qty) : '—'}</td><td>${d.share ? d.share.toFixed(2) + '%' : '—'}</td></tr>`).join('');
-  $('#tPolicy').innerHTML = head + '<tbody>' + body + '</tbody>';
+  $('#tPolicy').innerHTML = head + '<tbody>' + body + '</tbody>'
+    + `<tfoot><tr><td colspan="11" style="font-size:11.5px;color:#63696f;font-weight:400;text-align:left;white-space:normal">
+       收穫期市價通常低於年均價（100–113 年平均低 ${fu(avg(DATA.gov.filter(d => d.y >= 100 && d.y <= 113).map(d => d.mk - harvestMk(d.y))))}）。
+       農民在收穫期決定是否繳公糧，故以年均價計算的價差會<b>系統性低估</b>公糧的相對吸引力；本表輔導價差仍沿用年均價以利歷年比較。</td></tr></tfoot>`;
 }
 
 /* ================= 3. 分級機制 ================= */
@@ -551,12 +573,13 @@ function drawQuota() {
         <td>${fu(q.asstPrice)}</td></tr>`).join('') + `</tbody>`;
 
   const a = Q[0], b = Q[2];
+  const P113 = DATA.periodOfficial.find(r => r.y === 113), SUR = DATA.tiers.find(t => t.name === '餘糧收購');
   $('#quotaNote').innerHTML = `1 期作每公頃配額總量<b>改制前後完全相同</b>：${fraw(a.plan + a.asst + a.surplus, 0)} 公斤 ＝ ${fraw(b.plan + b.asst + b.surplus, 0)} 公斤。
     但結構反轉 —— <b>餘糧 ${fraw(a.surplus, 0)} → ${fraw(b.surplus, 0)} 公斤（−${((1 - b.surplus / a.surplus) * 100).toFixed(0)}%）</b>，
     計畫 ${fraw(a.plan, 0)} → ${fraw(b.plan, 0)}、輔導 ${fraw(a.asst, 0)} → ${fraw(b.asst, 0)}。
-    餘糧收購量從 113 年全年 <b>75,866 公噸</b>崩到 115 年 1 期 <b>594 公噸</b>，是<b>兩個原因疊加</b>：
-    (1) 制度面 —— 餘糧配額被砍 87%；(2) 行為面 —— 餘糧含補助名目價 23.6 元/公斤仍低於市價 26.14 元，沒有繳交誘因。
-    <b>只看價差會高估行為因素、忽略配額下修。</b>`;
+    餘糧收購量從 113 年 1 期 <b>${fraw(P113.p1_surplus, 0)} 公噸</b>降到 115 年 1 期 <b>${fraw(SUR.qty, 0)} 公噸</b>（同期作比較）。<b>主因是配額</b>：餘糧配額被砍 ${((1 - b.surplus / a.surplus) * 100).toFixed(0)}%。
+    價差是次要因素 —— 115 年 1 期餘糧含補助名目價 ${fu(SUR.eff)} 低於同期市價 ${fu(DATA.tiersMarket)}（${UL()}），
+    但歷史上<b>價差為負的 113 年，1 期餘糧仍收 ${fraw(P113.p1_surplus, 0)} 公噸</b>，可見單靠價差不會讓餘糧歸零（見「統計檢驗」頁）。`;
 }
 
 /* ================= 3a. 期別比較（同期作對同期作，官方 CI03） ================= */
@@ -588,7 +611,7 @@ function drawPeriod() {
           + `<td><b>${fraw(r.total, 0)}</b><div style="font-size:11px;color:#63696f">1 期 ${(p1 / r.total * 100).toFixed(1)}%</div></td></tr>`;
       }).join('')
     + `<tr style="background:#fff8e6"><td><b>115</b> <span style="color:#c0392b;font-size:11px">1 期</span></td>`
-    + `<td>${fraw(196295.03, 0)}</td><td>${fraw(111690.48, 0)}</td><td>${fraw(594.09, 0)}</td>`
+    + DATA.tiers.map(t => `<td>${fraw(t.qty, 0)}</td>`).join('')
     + `<td colspan="3" style="text-align:center;color:#63696f">進行中（至 115/12/20）</td><td><b>—</b></td></tr></tbody>`;
 
   const g = (r) => r.p1_plan_asst;
@@ -628,12 +651,12 @@ function drawPeriod() {
     餘糧 ${fraw(R.before.surplus, 0)} → <b>僅 ${fraw(R.after.surplus, 0)} 公噸（${((R.after.surplus / R.before.surplus - 1) * 100).toFixed(1)}%）</b>，
     但<b>全年合計 ${fraw(R.before.total, 0)} → ${fraw(R.after.total, 0)} 公噸（${((R.after.total / R.before.total - 1) * 100).toFixed(1)}%）</b>。<br>
     <b>這正是「總量不變、配額重分配」的直接實證</b>：總量幾乎沒動，而最低價的餘糧級距幾乎被消滅。
-    也因此，先前只用「價差 −2.54 元/公斤」解釋餘糧崩跌是<b>不完整</b>的 —— 制度面把餘糧配額砍掉 87%（3,000→400 公斤/公頃），
-    才是主因；價差只是讓農民願意改填計畫與輔導。`;
+    也因此，先前只用「餘糧價差 ${fu(DATA.tiers[2].eff - DATA.tiersMarket)}（${UL()}）」解釋餘糧崩跌是<b>不完整</b>的 —— 制度面把餘糧配額砍掉 ${((1 - DATA.quotaHist[2].surplus / DATA.quotaHist[0].surplus) * 100).toFixed(0)}%（${fraw(DATA.quotaHist[0].surplus, 0)}→${fraw(DATA.quotaHist[2].surplus, 0)} 公斤/公頃），
+    才是主因；歷史上價差為負時餘糧也沒有歸零，價差只是次要因素。`;
 
-  const p1r = (R.after.p1 / R.before.p1 - 1) * 100;
-  $('#quotaNote') && ($('#quotaNote').innerHTML += `<br><b>114 年實證</b>：1 期作合計 ${fraw(R.before.p1, 0)} → ${fraw(R.after.p1, 0)} 公噸（${p1r.toFixed(1)}%），
-    2 期作 ${fraw(R.before.p2, 0)} → ${fraw(R.after.p2, 0)} 公噸（+${((R.after.p2 / R.before.p2 - 1) * 100).toFixed(1)}%）——
+  const p1r = (R.p1.after / R.p1.before - 1) * 100;
+  $('#quotaNote') && ($('#quotaNote').innerHTML += `<br><b>114 年實證</b>：1 期作合計 ${fraw(R.p1.before, 0)} → ${fraw(R.p1.after, 0)} 公噸（${p1r.toFixed(1)}%），
+    2 期作 ${fraw(R.p2.before, 0)} → ${fraw(R.p2.after, 0)} 公噸（+${((R.p2.after / R.p2.before - 1) * 100).toFixed(1)}%）——
     改制後 1 期作占比下降、2 期作上升，兩期合計仍持平。`);
 }
 
@@ -662,13 +685,14 @@ function drawT33() {
         <td><b>${fraw(t.fullPlanAsst, 0)}</b></td><td title="億元">${t.cost == null ? '—' : fraw(t.cost, 2)}</td></tr>`).join('')
     + `</tbody>`;
 
+  const T113 = T.find(t => t.y === 113), T114 = T.find(t => t.y === 114);
   const peak = T.reduce((a, z) => z.surplus > a.surplus ? z : a);
   const low = T.reduce((a, z) => z.surplus < a.surplus ? z : a);
   $('#t33Note').innerHTML = `餘糧收購是<b>最敏感的一級</b>：107–109 年市價低迷時飆到 ${fraw(peak.surplus, 0)} 公噸（${peak.y} 年），
     113 年只剩 ${fraw(T.find(t => t.y === 113).surplus, 0)} 公噸（最低是 ${low.y} 年的 ${fraw(low.surplus, 0)} 公噸）。
     計畫＋輔導則相對穩定在 20–31 萬公噸 —— <b>餘糧就是那條「划不划算」的調節閥</b>。
     收購支出欄位單位為億元（資料已換算完成）。立法院同份報告載明 100–113 年平均每年約 111.01 億元。<br>
-    <b>114 年（黃底列）</b>：計畫 158,167 → <b>224,540 公噸</b>、餘糧 75,866 → <b>305 公噸</b>，全年合計 <b>312,080 → 304,055 公噸（−2.6%）</b> ——
+    <b>114 年（黃底列）</b>：計畫 ${fraw(T113.plan, 0)} → <b>${fraw(T114.plan, 0)} 公噸</b>、餘糧 ${fraw(T113.surplus, 0)} → <b>${fraw(T114.surplus, 0)} 公噸</b>，全年合計 <b>${fraw(DATA.reform114.before.total, 0)} → ${fraw(DATA.reform114.after.total, 0)} 公噸（${((DATA.reform114.after.total / DATA.reform114.before.total - 1) * 100).toFixed(1)}%）</b> ——
     <b>總量確實不變，但結構整個翻過來</b>。114 年取自農業統計資料查詢 CI03（災害穀、支出該查詢項未列）。`;
 }
 
@@ -723,18 +747,79 @@ function drawVariety() {
   const pos = V.filter(v => v.gap[String(y0)] >= 0).map(v => v.ret);
   $('#varNote').innerHTML = `115 年：<b>${pos.join('、')}</b> 的公糧含補助名目價仍高於市價（繳公糧略有利）；
     <b>${neg.join('、')}</b> 已被市價超越（價差 ${V.filter(v => v.gap[String(y0)] < 0).map(v => fu(v.gap[String(y0)])).join('、')}）——
-    糯稻自 113 年起就翻負。而<b>所有品種的市價都高於餘糧含補助名目價</b>。方向與 115 年 1 期餘糧僅收 594 公噸一致，但收購量同時受配額與依序繳交影響，不能單以此判定原因。`;
+    糯稻自 113 年起就翻負。而<b>所有品種的市價都高於餘糧含補助名目價</b>。方向與 115 年 1 期餘糧僅收 ${fraw(DATA.tiers[2].qty, 0)} 公噸一致，但收購量同時受配額與依序繳交影響，不能單以此判定原因。`;
 }
 
 /* ================= 4. 統計檢驗 ================= */
 function drawScatter() {
-  const S = DATA.stats;
-  $('#kpiStats').innerHTML = S.cards.map(c =>
-    `<div class="kpi"><div class="l">${c.label}</div><div class="v" style="color:${c.v > 0 ? '#c0392b' : '#1e8449'}">${c.v > 0 ? '+' : ''}${c.v.toFixed(3)}</div>
-     <div class="d" style="color:#63696f;font-weight:400">${c.note}</div></div>`).join('');
-  $('#tStats').innerHTML = '<thead><tr><th>變數 A</th><th>變數 B</th><th>相關係數 r</th><th>解讀</th></tr></thead><tbody>' +
-    S.table.map(r => `<tr><td>${r.a}</td><td>${r.b}</td>
-      <td style="font-weight:700;color:${r.r > 0 ? '#c0392b' : '#1e8449'}">${r.r > 0 ? '+' : ''}${r.r.toFixed(3)}</td><td style="text-align:left">${r.note}</td></tr>`).join('') + '</tbody>';
+  const all = DATA.gov.filter(d => d.y <= 113 && d.qty && d.share && d.prod);
+  const G = all.filter(d => d.y >= 100);
+  const PO = (y) => DATA.periodOfficial.find(r => r.y === y);
+  const V = {
+    mk: d => d.mk, qty: d => d.qty, share: d => d.share, prod: d => d.prod,
+    gap: d => d.guid + DATA.sub - d.mk,
+    sgap: d => d.surp + DATA.sub - d.mk, sqty: d => PO(d.y).surplus,
+    sgapH: d => d.surp + DATA.sub - harvestMk(d.y), s1: d => PO(d.y).p1_surplus,
+  };
+  const R = (rows, x, y) => corr(rows.map(V[x]), rows.map(V[y]));
+  const DR = (rows, x, y) => corr(diff(rows.map(V[x])), diff(rows.map(V[y])));
+  const rows = [
+    ['市場稻穀價（年均）', '公糧收購量', 'mk', 'qty', '同一制度內為中度負相關；全樣本因 99 年舊制被低估'],
+    ['市場稻穀價（年均）', '公糧收購占比', 'mk', 'share', '同上'],
+    ['輔導價差（年均）', '公糧收購量', 'gap', 'qty', '水準值高，但差分後約減半 —— 部分為共同趨勢'],
+    ['輔導價差（年均）', '公糧收購占比', 'gap', 'share', '占比已部分消除產量規模的影響'],
+    ['稻作總產量', '公糧收購量', 'prod', 'qty', '關聯最強，但屬機械性（沒有稻穀就沒有公糧）'],
+    ['<b>餘糧價差（年均）</b>', '<b>餘糧收購量</b>', 'sgap', 'sqty', '<b>級距對應</b>：差分後幾乎不衰減，是最穩健的價格訊號'],
+    ['餘糧價差（收穫期）', '1 期餘糧收購量', 'sgapH', 's1', '時點對應未提高 r；價差為負時仍有底量（見散佈圖）'],
+  ];
+  const sg = (v) => `<span style="font-weight:700;color:${v > 0 ? '#c0392b' : '#1e8449'}">${v > 0 ? '+' : ''}${v.toFixed(3)}</span>`;
+  $('#tStats').innerHTML = `<thead><tr><th>變數 A</th><th>變數 B</th><th>r<br>99–113（n=${all.length}）</th><th>r<br>100–113（n=${G.length}）</th><th>差分 Δr<br>100–113</th><th>解讀</th></tr></thead><tbody>`
+    + rows.map(([a, b, x, y, note]) => `<tr><td>${a}</td><td>${b}</td><td>${sg(R(all, x, y))}</td><td>${sg(R(G, x, y))}</td><td>${sg(DR(G, x, y))}</td><td style="text-align:left">${note}</td></tr>`).join('')
+    + '</tbody>';
+
+  // 控制產量：偏相關與雙變數迴歸（100–113）
+  const rxy = R(G, 'gap', 'qty'), rxz = R(G, 'gap', 'prod'), ryz = R(G, 'qty', 'prod');
+  const pr = (rxy - rxz * ryz) / Math.sqrt((1 - rxz ** 2) * (1 - ryz ** 2));
+  const nG = G.length, X = G.map(d => [1, V.gap(d), d.prod / 1e4]), Y = G.map(V.qty);
+  const M = [0, 1, 2].map(i => [0, 1, 2].map(j => X.reduce((t, x) => t + x[i] * x[j], 0)).concat([0, 1, 2].map(j => +(i === j))));
+  for (let i = 0; i < 3; i++) { const f = M[i][i]; M[i] = M[i].map(v => v / f);
+    for (let k = 0; k < 3; k++) if (k !== i) { const t = M[k][i]; M[k] = M[k].map((v, j) => v - t * M[i][j]); } }
+  const Inv = M.map(r => r.slice(3)), Xy = [0, 1, 2].map(i => X.reduce((t, x, k) => t + x[i] * Y[k], 0));
+  const B = Inv.map(r => r.reduce((t, v, j) => t + v * Xy[j], 0));
+  const res = Y.map((y, k) => y - X[k].reduce((t, v, j) => t + v * B[j], 0)), sse = res.reduce((t, e) => t + e * e, 0);
+  const s2 = sse / (nG - 3), myG = Y.reduce((a, b) => a + b) / nG, R2 = 1 - sse / Y.reduce((t, y) => t + (y - myG) ** 2, 0);
+  const tv = (i) => B[i] / Math.sqrt(s2 * Inv[i][i]);
+  $('#olsNote').innerHTML = `<b>控制產量後（100–113 年）</b>：輔導價差 ↔ 收購量偏相關 <b>${pr >= 0 ? '+' : ''}${pr.toFixed(3)}</b>。
+    雙變數迴歸「收購量 ＝ 價差 ＋ 產量」：<b>價差每多 1 元／公斤，收購量約多 ${fraw(B[1] / 1e4, 1)} 萬公噸</b>（t = ${tv(1).toFixed(2)}，勉強顯著）；
+    產量每多 1 萬公噸，收購量約多 ${fraw(B[2], 0)} 公噸（t = ${tv(2).toFixed(2)}）；R² = ${R2.toFixed(2)}。
+    殘差最大：${G.map((d, k) => [d.y, res[k]]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).map(([y, e]) => `${y} 年 ${e > 0 ? '+' : '−'}${fraw(Math.abs(e) / 1e4, 1)} 萬`).join('、')}。
+    樣本極小，係數只宜看量級，不宜作預測。`;
+
+  $('#kpiStats').innerHTML = [
+    ['輔導價差 ↔ 收購量', R(G, 'gap', 'qty'), `差分後 ${DR(G, 'gap', 'qty').toFixed(3)}（約減半）`],
+    ['餘糧價差 ↔ 餘糧量', R(G, 'sgap', 'sqty'), `差分後 ${DR(G, 'sgap', 'sqty').toFixed(3)}（幾乎不衰減）`],
+    ['價差 ↔ 收購量｜控制產量', pr, `每 1 元／公斤 ≈ ${fraw(B[1] / 1e4, 1)} 萬公噸`],
+    ['總產量 ↔ 收購量', R(G, 'prod', 'qty'), '最強，但屬機械性關聯'],
+  ].map(([l, v, note]) => `<div class="kpi"><div class="l">${l}<span class="utag">（100–113）</span></div><div class="v" style="color:${v > 0 ? '#c0392b' : '#1e8449'}">${v > 0 ? '+' : ''}${v.toFixed(3)}</div>
+     <div class="d" style="color:#63696f;font-weight:400">${note}</div></div>`).join('');
+
+  // 餘糧散佈圖
+  const OUT = [100, 103, 113];
+  const sp = G.map(d => ({x: du(V.sgapH(d)), y: V.s1(d), y2: d.y}));
+  $('#uSur').textContent = '（' + UL() + '）';
+  mk('cSurplus', {type: 'scatter', data: {datasets: [{label: '各年度', data: sp,
+      backgroundColor: sp.map(p => OUT.includes(p.y2) ? '#c0392b' : '#1f6feb'), pointRadius: 6, pointHoverRadius: 8}]},
+    plugins: [{id: 'yrLbl', afterDatasetsDraw(c) { const {ctx} = c; ctx.save(); ctx.font = '11px sans-serif'; ctx.fillStyle = '#63696f';
+      c.getDatasetMeta(0).data.forEach((pt, i) => ctx.fillText(sp[i].y2, pt.x + 8, pt.y + 4)); ctx.restore(); }}],
+    options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false},
+        tooltip: {callbacks: {label: (c) => ` ${rocYear(c.raw.y2)}：價差 ${fraw(c.raw.x, DP())} ／ 1 期餘糧 ${fraw(c.raw.y, 0)} 公噸`}}},
+      scales: {x: {title: {display: true, text: `餘糧含補助名目價 − 收穫期市價（${UL()}）`, font: {size: 11.5}}, ticks: {font: {size: 11}},
+          grid: {color: (ctx) => ctx.tick.value === 0 ? 'rgba(192,57,43,.55)' : 'rgba(0,0,0,.06)'}},
+        y: {beginAtZero: true, title: {display: true, text: '1 期餘糧收購量（公噸）', font: {size: 11.5}}, ticks: {font: {size: 11}}}}}});
+  const f = (y) => { const d = G.find(z => z.y === y); return `${y} 年價差 ${fu(V.sgapH(d))}、收 ${fraw(V.s1(d), 0)} 公噸`; };
+  $('#surNote').innerHTML = `離群點：${OUT.map(f).join('；')}（100 年為新制第一年）。
+    價差為負或接近 0 時，1 期餘糧仍有 5–8 萬公噸的<b>底量</b> —— 可能與糧商收購意願、品質等級、交易便利或付款確定性有關，現有資料無法區分。
+    因此 114 年起餘糧降到數百公噸，<b>主要是配額下修的結果</b>，不是價差。`;
 
   const pts = DATA.gov.filter(d => Number.isFinite(d.share) && Number.isFinite(d.mk) && Number.isFinite(d.guid))
     .map(d => ({x: du(d.guid + DATA.sub - d.mk), y: d.share, y2: d.y}));
