@@ -69,6 +69,8 @@ thead th{background:#eff2f6;font-weight:600;position:sticky;top:0;z-index:1}
 .callout{border-left:4px solid var(--amber);background:#fffbf0;padding:12px 15px;border-radius:0 9px 9px 0;font-size:14px;margin:14px 0;white-space:pre-line}
 .callout.good{border-color:var(--teal);background:#eef7f7}
 .callout.bad{border-color:var(--red);background:#fdf4f3}
+.plain{border-left:4px solid var(--accent);background:#eef4fd;padding:11px 15px;border-radius:0 9px 9px 0;font-size:13.5px;line-height:1.7;margin:12px 0}
+.plain b.tag{color:var(--accent)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:860px){.grid2{grid-template-columns:1fr}}
 ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin-bottom:6px}
@@ -233,6 +235,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="card">
         <h2>散佈圖：輔導價差 vs 收購占比</h2>
         <p class="sub">99–113 年，每點為一年。價差越大，繳公糧的比例越高。</p>
+        <div class="plain"><b class="tag">白話講：</b>每個點是一年。點如果從左下排到右上，代表「那一年公糧比市價貴越多，農民當年繳公糧的比例也越高」；紅色虛線是幫這些點畫出的一條最貼合的直線，用來看整體方向，不代表每一年都精準落在線上。</div>
         <div class="chartbox h300"><canvas id="cScatter"></canvas></div>
       </div>
       <div class="card">
@@ -252,14 +255,17 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
     <div class="card">
       <h2>相關係數一覽</h2>
       <p class="sub">由嚴到鬆三層檢驗：全樣本 → 同一制度（100–113 年）→ 逐年變動（差分，去除共同趨勢）。結論在越嚴格的欄位仍成立，才算站得住。</p>
+      <div class="plain"><b class="tag">白話講：</b>表裡的「r」是兩個數字有多同步的分數，從 −1（完全相反）到 +1（完全同步），0 代表沒關係。「95% 信賴區間」可以想成「猜測的誤差棒」——如果這個範圍橫跨 0，就代表「其實根本沒關係」這個可能性還沒被排除，不能只看正負號就下結論。「Spearman ρ」跟 r 問的是同一件事，只是先把數字換成排名再算，比較不會被一兩個離譜的年份牽著走。「差分」則是不看「今年多少」，改看「今年比去年多了多少」——這樣可以把「兩個東西剛好一起逐年成長」這種巧合濾掉，剩下的才比較像是真的互相影響。</div>
       <div class="scroll"><table id="tStats"></table></div>
       <div class="note">99 年為舊價格制度（輔導 20 元），100 年起調升 3 元，為制度斷點，故主分析採 100–113 年。「年均」＝全年各月簡單平均；「收穫期」＝6–8 月（1 期作收購期間）平均。相關係數與單位無關。<b>95% CI</b> 以 Fisher z 轉換計算，<b>Spearman ρ</b> 為秩次相關（對離群年度較穩健）；兩者皆為描述性指標，未做多重檢定校正。</div>
+      <div class="plain"><b class="tag">白話講：</b>下面這段是把「產量大小」的干擾先扣掉，只看「同樣的產量下，價差還能不能單獨解釋收購量」。「偏相關」就是扣掉干擾後剩下的關聯強度；「迴歸」則進一步給出一個具體數字：價差每多 1 元，收購量大概會多多少。後面的 t 值和門檻是在問「這個數字有沒有可能其實是巧合」——t 值沒過門檻，就代表以目前的樣本量還無法排除「巧合」這個可能。</div>
       <div class="callout" id="olsNote"></div>
     </div>
     <div class="card">
       <h2>期作面板：把樣本從 14 個年度拆成 28 個期作 <span class="utag" id="uSeason"></span></h2>
       <p class="sub">年度平均會把兩個期作混在一起，而農民決定繳不繳公糧時看的是<b>當期收穫期的市價</b>。本表改以「期作」為分析單位（100–113 年，1 期＋2 期共 28 筆），市價分別取 <b>1 期 6–8 月</b>、<b>2 期 11–12 月</b> 的稉種月平均。樣本加倍，也讓兩個期作的差異第一次分得開。
         因為兩期的收購量差了<b>一個量級</b>，下圖拆成左右兩張、各自一條 y 軸 —— <b>左右不可比較高度，請比較各自的斜率與分散程度</b>。</p>
+      <div class="plain"><b class="tag">白話講：</b>一整年其實是兩次收成（1 期、2 期）加總的平均，把它們合在一起看，等於把兩種可能完全不同的農民行為混成一個數字。這裡拆開來看，才不會讓其中一期（通常是主產季 1 期）的行為蓋過另一期，藉此檢查「價格是不是真的影響農民要不要繳公糧」在兩個產季是不是講得通。</div>
       <div class="grid2">
         <div class="chartbox h340"><canvas id="cSeasonA"></canvas></div>
         <div class="chartbox h340"><canvas id="cSeasonB"></canvas></div>
@@ -270,6 +276,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
     <div class="card">
       <h2>縣市面板：414 筆觀測、控制縣市與期作 <span class="utag">99–113 年 · 30 期作 × 15 縣市</span></h2>
       <p class="sub">本站最嚴格的估計。公糧價格全國統一，所以價差的縣市差異<b>完全來自市價的縣市差異</b>——這正是識別的來源。加入<b>縣市固定效果</b>吸收土壤、糧商密度、通路結構等不隨時間變動的特質；加入<b>期作固定效果</b>吸收全國性的年度衝擊（天候、政策調整）。本版再補上<b>縣市層級的實際稻穀產量</b>（農業部統計處 CK01，逐年與立法院表 3-2 全國總產量對帳，15 年差異皆為 0.00%），因此可以直接改用<b>收購占比</b>為應變數，把「稻多自然收得多」這條機械管道除掉。收購量亦改用<b>官方 CI03 的縣市別數字</b>（96 格逐一對帳，差異皆為 0.00%），因此<b>不再需要任何樣本篩選</b>，期作數由 20 增為 30，並首度含有<b>餘糧</b>。</p>
+      <div class="plain"><b class="tag">白話講：</b>這裡想問的是「排除掉『彰化天生就是種得比宜蘭多』這種縣市固有差異，也排除掉『那一年天氣不好、全國都收得少』這種全國性衝擊之後，同一年裡，價差比較大的縣市是不是真的繳得比較多？」表裡的 β 是「價差每多 1 元／公斤，收購占比大概變動多少」，星號愈多，代表這個數字愈不像是運氣造成的。「群聚 SE」是把同一個縣市不同年份的資料視為一組來估計不確定性，比假裝每一筆都完全獨立更保守、更誠實。R² 很高不代表價差重要——那多半是「縣市天生不同、年份天生不同」本身的功勞，下方說明會拆出價差自己單獨的解釋力有多小。</div>
       <div class="scroll"><table id="tFE"></table></div>
       <div class="chartbox h360" style="margin-top:14px"><canvas id="cFE"></canvas></div>
       <div class="note" id="feNote"></div>
@@ -281,6 +288,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
         而不是只有一次調整，識別用的價格變異因此增加。
         上圖是三個樣本的 β 與 95% CI（<b>藍＝顯著、紅＝不顯著</b>）；下圖是殘差散佈，
         <b>琥珀色圓圈</b>標出舊制中 |價差殘差| &gt; 1 的高槓桿點 —— 舊制那條斜率主要由這少數幾筆撐起。</p>
+      <div class="plain"><b class="tag">白話講：</b>同一個問題（價差高低會不會影響繳公糧多寡），放到不同年代去問，答案完全不一樣——舊制度下答案是「會」，現行制度下答案是「不太會」。上圖的長條愈高代表估計出來的影響愈大，誤差棒（那條直線）碰不到 0 才算「答案是肯定的」；藍色代表碰不到 0（顯著），紅色代表碰得到（不顯著）。「交互作用項」問的是「這兩個年代的答案，差異本身是不是真的、不是巧合」——結果顯示這個差異是真的，但本站沒辦法說清楚「為什麼會這樣」，只能陳述「確實不一樣」這個事實。</div>
       <div class="chartbox h200"><canvas id="cEraCoef"></canvas></div>
       <div class="chartbox h320" style="margin-top:6px"><canvas id="cEra"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tEra"></table></div>
@@ -290,6 +298,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <h2>係數是怎麼一步步縮水的 <span class="utag">每一步只改一件事</span></h2>
       <p class="sub">本站對「價差 → 收購」的估計改過五次，每次都往下修。這張圖把過程攤開：<b>每一步只改動一個設定</b>，
         所以縮水多少可以直接歸因給那一步。誤差棒為 95% 信賴區間（縣市群聚標準誤）；<b>只要誤差棒碰到 0，該設定就無法宣稱有效果</b>。</p>
+      <div class="plain"><b class="tag">白話講：</b>如果只做最粗糙的第一步分析（不排除縣市與年份本身的差異），會得到一個看起來很漂亮、很顯著的數字；但那個數字有一大部分其實是「縣市本來就不一樣、年份本來就不一樣」造成的假象，不是價格真正的作用。這張圖把「拆假象」的過程一步步攤開，每加一道控制，數字就掉一次——到最後一步，誤差棒（那條直線）已經碰到 0，代表現有資料已經無法證明價格有穩定的效果。</div>
       <div class="chartbox h380"><canvas id="cLadder"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tLadder"></table></div>
       <div class="callout bad" id="ladderNote"></div>
@@ -297,12 +306,14 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
     <div class="card">
       <h2>散佈圖：逐年變動（一階差分） <span class="utag" id="uDiff"></span></h2>
       <p class="sub">上面的表已經在講「差分後 r 約減半」，這裡把它畫出來。橫軸為輔導價差的<b>年增減</b>，縱軸為收購占比的<b>年增減</b>；去掉共同趨勢後，關係仍為正但明顯鬆散。</p>
+      <div class="plain"><b class="tag">白話講：</b>前面的分析看的是「哪一年價差比較大」，這張圖改看「價差比去年多了多少、收購占比又比去年多了多少」——兩者若同步成長只是因為「大家逐年一起漲」，這張圖能把這種巧合濾掉。點分散在四個象限（有的價差變大占比卻變小、有的價差變小占比反而變大），代表「價差變大的年度，占比未必跟著變大」，關聯比原本水準值上看起來的鬆散許多。</div>
       <div class="chartbox h340"><canvas id="cDiff"></canvas></div>
       <div class="note" id="diffNote"></div>
     </div>
     <div class="card">
       <h2>散佈圖：餘糧價差 vs 1 期餘糧收購量 <span class="utag" id="uSur"></span></h2>
       <p class="sub">100–113 年，市價採收穫期（6–8 月）稉種平均。紅點為價格解釋不了的年度。</p>
+      <div class="plain"><b class="tag">白話講：</b>橫軸是「繳餘糧划不划算」（越往右越划算），縱軸是「當年 1 期繳了多少餘糧」。如果價格是唯一原因，點應該乾淨地由左下排到右上；紅點是明顯不照這個劇本走的年份（例如價差已經是負的，農民卻還是繳了不少），代表除了價格，還有其他本站資料量不出來的因素在起作用。</div>
       <div class="chartbox h340"><canvas id="cSurplus"></canvas></div>
       <div class="note" id="surNote"></div>
       <div class="callout bad" id="surContrast"></div>
