@@ -221,5 +221,13 @@ for r in page['ROBUST']:
     check(f"價差率 {r['k']} SE", se, r['ratio']['se'])
     check(f"價差率 {r['k']} bootstrap p", wild_boot_p(base, FE2, xs=('gr',)), r['ratio']['p'], 5e-3)
 
+# 7. 剔除稻作四選三（110 年起）與旱災停灌年度（110、112 年）；頁面文字
+base = ln_y(new, 'pa')
+for drop, bw, pw in (((110, 111, 112, 113), 0.043, 0.41), ((110, 111, 112), 0.058, 0.17), ((110, 112), 0.035, 0.34)):
+    x = base[~base.y.isin(drop)]
+    _, _, [(b, _)] = reg(x, FE2)
+    check(f'剔除 {drop} β（頁面文字）', b, bw, 5e-3)
+    check(f'剔除 {drop} bootstrap p（頁面文字）', wild_boot_p(x, FE2), pw, 5e-3)
+
 print(f'\n{len(fails)} 項不符：{fails}' if fails else '\n全部與 index.html 相符')
 raise SystemExit(1 if fails else 0)
