@@ -200,6 +200,10 @@ for m in I['placebo']:
     n, _, b, se, _ = its(seg[m['seg']], m['K'])
     check(f"假政策年 {m['K']} 跳升", b[3], m['b'], 5e-3)
     check(f"假政策年 {m['K']} SE", se, m['se'], 5e-3)
+for m in I['pctrl']:
+    n, _, b, se, _ = its(seg[m['seg']], m['K'], ctrl=('mk',))
+    check(f"假政策年 {m['K']} 加控制市價 跳升", b[3], m['b'], 5e-3)
+    check(f"假政策年 {m['K']} 加控制市價 SE", se, m['se'], 5e-3)
 check('ITS 期作點數', len(agg), len(I['pts']), 0.5)
 
 # 6. 留一年度＋價差率（ROBUST）
