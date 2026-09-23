@@ -71,6 +71,8 @@ thead th{background:#eff2f6;font-weight:600;position:sticky;top:0;z-index:1}
 .callout.bad{border-color:var(--red);background:#fdf4f3}
 .plain{border-left:4px solid var(--accent);background:#eef4fd;padding:11px 15px;border-radius:0 9px 9px 0;font-size:13.5px;line-height:1.7;margin:12px 0}
 .plain b.tag{color:var(--accent)}
+.policy{border-left:4px solid var(--purple);background:#f7f1fa;padding:11px 15px;border-radius:0 9px 9px 0;font-size:13.5px;line-height:1.7;margin:12px 0}
+.policy b.tag{color:var(--purple)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:860px){.grid2{grid-template-columns:1fr}}
 ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin-bottom:6px}
@@ -150,11 +152,13 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <p class="sub" style="margin-top:14px">下圖把四條線<b>相減</b>：正值＝該級距比賣市場有利，負值＝划不來。
         <b>市價與公糧價的交叉點</b>是本站的核心事實之一，但在上圖會被線條重疊蓋住。</p>
       <div class="chartbox h340"><canvas id="cPolicyGap"></canvas></div>
+      <div class="policy"><b class="tag">政策意涵：</b>公糧價的「支撐力」會被市價上漲慢慢吃掉：輔導價 100 年起固定 23 元，到 113 年已被市價追上，114 年調升 1.5 元後才恢復正價差。只要公告價不動而市價續漲，輔導級距就會再次失去吸引力。餘糧則自 100 年起幾乎一直低於市價，在現行價格下已不是日常出路，而是市價崩跌時的備援。實務上，檢討收購價時可把「各級距價差」當成年度監測指標，而不是只看公告價本身。</div>
     </div>
     <div class="card">
       <h2>逐年價差表 <span class="utag" id="tagPolicy2"></span></h2>
       <p class="sub">「輔導價差」＝ 輔導收購含補助名目價 − 市場稻穀價；正值代表繳公糧比賣市場有利。</p>
       <div class="scroll"><table id="tPolicy"></table></div>
+      <div class="policy"><b class="tag">政策意涵：</b>農民是在收穫期決定要不要繳公糧，而收穫期市價平均比年均價低約 0.47 元。所以用年均價算出的價差，會讓公糧看起來比實際「沒那麼划算」。評估收購價是否足以吸引農民繳交時，應以收穫期（1 期 6–8 月、2 期 11–12 月）的市價為準。</div>
     </div>
   </section>
 
@@ -164,7 +168,9 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <h2>114 年 1 期起改制：總量不變、配額重分配 <span class="utag">每公頃乾穀配額</span></h2>
       <p class="sub">這<b>不是</b>「全面調高公糧收購價」。官方作法是<b>收購總量原則不變</b>，把每公頃配額從價格最低的<b>餘糧</b>移到價格較高的<b>計畫</b>與<b>輔導</b>，並把<b>輔導</b>收購價每公斤提高 1.5 元。計畫與餘糧的價格<b>並未</b>同步調高。</p>
       <div class="scroll"><table id="tQuota"></table></div>
+      <div class="plain"><b class="tag">白話講：</b>每公頃能繳幾公斤、每公斤多少錢，決定農民最多能從公糧拿到多少錢。改制前後每公頃總額度都是 6,200 公斤，只是把便宜的額度（餘糧）換成貴的額度（計畫、輔導）。</div>
       <div class="callout" id="quotaNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>這次改制是「不增量、提單價」：同一公頃能繳的總量不變，但平均可領的單價提高，補貼更集中給繳公糧的農民。代價是<b>安全網變小</b>：餘糧配額砍到 400 公斤，萬一市價崩跌、糧商不收，公糧用最低價兜底的容量只剩原本約 13%。政策上宜預先備妥市價崩跌時的應變機制（例如臨時提高餘糧配額的觸發條件），而不是等事件發生再公告。</div>
       <div class="note">資料來源：農業部各期作「公糧稻穀收購數量、價格、期限暨濕穀計價方式」公告（113 年第 1／2 期、115 年第 1／2 期）。</div>
     </div>
     <div class="card">
@@ -172,7 +178,9 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <p class="sub">政策原話是「收購總量原則不變、<b>增加</b>計畫及輔導收購數量、輔導價每公斤提高 1.5 元」。114 年實收資料把這句話驗證得乾乾淨淨 —— <b>總量幾乎沒動，錢卻整包換了位置。</b></p>
       <div class="chartbox h360"><canvas id="cReform"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tReform"></table></div>
+      <div class="plain"><b class="tag">白話講：</b>拿改制前一年（113）和改制後第一年（114）的實際收購量比：總量差不多，但低價的餘糧幾乎消失，高價的計畫收購大增。</div>
       <div class="callout" id="reformNote"></div>
+      <div class="policy" id="reformPolicy"></div>
     </div>
     <div class="card">
       <h2>115 年 1 期（2026）分級實證 <span class="utag" id="tagTier"></span></h2>
@@ -180,7 +188,9 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
         配額為 115 年 <b>1 期作</b>公告值（2 期作已公告但較小：計畫 2,500／輔導 1,900／餘糧 300 公斤/公頃，收購至 115/12/20）。
         下圖把<b>配額上限</b>與<b>實際收購量</b>並排 —— 這樣才看得出「量少」是價格造成還是配額用滿。</p>
       <div class="chartbox h340"><canvas id="cTier"></canvas></div>
+      <div class="plain"><b class="tag">白話講：</b>灰色長條是「最多能收多少」，彩色是「實際收了多少」。計畫幾乎收滿，輔導收了七成，餘糧只收了配額的 2.4%。</div>
       <div class="callout bad" id="tierNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>現在真正會卡住收購量的是<b>計畫與輔導的配額</b>，不是價格：若要讓更多稻穀進公糧，要調的是這兩級的配額。餘糧幾乎空著，代表它此刻對收購量沒有作用，但它的價值在市價下跌時的備援容量。預算與倉容規劃應以計畫、輔導兩級的配額為上限來估算。（計畫級距的使用率是推算值，見「資料與方法」。）</div>
       <div class="scroll" style="margin-top:14px"><table id="tTier"></table></div>
     </div>
     <div class="card">
@@ -188,14 +198,18 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <p class="sub">官方<b>有</b>公開歷年「期作 × 收購類型」的收購量（農業統計資料查詢 CI03），所以可以<b>同期作對同期作</b>比 —— 115 年 1 期（2026）對 114 年 1 期（2025），不再拿單一期作去比別年的全年。</p>
       <div class="chartbox h360"><canvas id="cPeriod"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tPeriod"></table></div>
+      <div class="plain"><b class="tag">白話講：</b>115 年 1 期只跟 114 年 1 期比，才是蘋果比蘋果；拿單一期作去比全年會失真。</div>
       <div class="callout" id="perNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>1 期作占全年收購九成以上，所以 <b>1 期收購一結束（約 8 月底），全年收購量與支出大致就確定了</b>。預算追加、倉容調度與公糧撥售計畫可以在這個時點就啟動評估，不必等年底。115 年 1 期已比 114 年同期多約一成，全年收購支出預期不會低於 114 年。</div>
     </div>
     <div class="card">
       <h2>歷年三級收購量與支出 <span class="utag">99–114 年 · 官方實收</span></h2>
       <p class="sub">每年計畫／輔導／餘糧／災害穀收購量與收購支出。<b>99–113 年</b>＝立法院表 3-3（農業部提供）；<b>114 年</b>＝農業統計資料查詢 CI03（已與表 3-3 逐筆驗證相符）。114 年災害穀與支出該查詢項未列，故留白。</p>
       <div class="chartbox h360"><canvas id="cT33"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tT33"></table></div>
+      <div class="plain"><b class="tag">白話講：</b>每根長條由下往上是計畫、輔導、餘糧、災害穀，總高度就是當年收購量。看哪一截變動最大，就知道年度差異從哪裡來。</div>
       <div class="callout" id="t33Note"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>歷年收購量的起伏幾乎都來自餘糧：市價低迷的 107–109 年餘糧暴增，支出也跟著升高。所以公糧預算的不確定性主要來自餘糧。114 年把餘糧配額砍掉 87% 之後，這個波動來源大幅縮小，支出會更好預測；但同時，市價崩跌時政府能吸收的量也變少了。這是「預算可預測性」與「市場穩定功能」之間的取捨，值得在政策檢討時明說。</div>
     </div>
     <div class="card">
       <h2>收購量的作物（品種）結構 <span class="utag">113 年 1 期</span></h2>
@@ -206,23 +220,27 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="callout good" id="cropVerNote"></div>
       <div class="scroll" style="margin-bottom:14px"><table id="tCropVer"></table></div>
       <div class="chartbox h300"><canvas id="cCrop"></canvas></div>
+      <div class="plain"><b class="tag">白話講：</b>公糧收的稻穀幾乎全是稉稻（蓬萊米），其他四類加起來不到 2%。</div>
       <div class="callout" id="cropNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>公糧價格政策的受益者實際上幾乎只有稉稻農。秈稻、糯稻農即使有公告價，也很少繳公糧。若政策目標是照顧特定品種或產區（例如糯稻），調整公糧價的效果有限，需要契作、轉作獎勵或直接給付等其他工具。</div>
       <div class="scroll" style="margin-top:14px"><table id="tCrop"></table></div>
     </div>
     <div class="card">
       <h2>品種 × 公糧價 對應 <span class="utag" id="tagVar"></span></h2>
       <p class="sub">公糧收購價<b>只分「稉種」與「秈種及糯種」兩個價格別</b>（秈與糯同價），市價卻有 5 個品種 —— 只有稉種的名稱與公糧價格別完全對應；其餘品種須借用同一價格別，對照較不精確。下圖為各品種以<b>自身對應的公糧價</b>計算的價差，虛線以上＝公糧有利。</p>
       <div class="chartbox h340"><canvas id="cVar"></canvas></div>
+      <div class="plain"><b class="tag">白話講：</b>每條線是一個品種「繳公糧比賣市場多拿多少」。線在 0 以上代表繳公糧比較好，在 0 以下代表賣市場比較好。</div>
       <div class="callout" id="varNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>糯稻市價自 113 年起已高於公糧價，對糯稻農而言公糧已沒有吸引力，市場價格就夠了。公糧價只分「稉種」與「秈種及糯種」兩類，同一個公告價對不同品種的意義差很大；價格別是否需要依品種細分，是可以檢討的制度設計問題。</div>
       <div class="scroll" style="margin-top:14px"><table id="tVar"></table></div>
       <div class="note">註：公糧收購量（計畫／輔導／餘糧）官方資料<b>不含品種維度</b>，因此無法直接驗證「哪個品種繳多少公糧」，本表僅呈現各品種的繳交誘因。</div>
     </div>
     <div class="card">
       <h2>級距設計的邏輯</h2>
       <ul class="tight">
-        <li><b>計畫收購</b>：價格最高、配額最少 —— 保價核心。</li>
-        <li><b>輔導收購</b>：價格次之 —— 支撐市場價格的主力（114 年起 23 → 24.5 元／公斤）。</li>
-        <li><b>餘糧收購</b>：價格最低、配額最多 —— 只在市價低迷、糧商不收時才吸納。</li>
+        <li><b>計畫收購</b>：價格最高 —— 保價核心。114 年起 1 期配額 2,000 → 3,250 公斤／公頃，由最少變成<b>最多</b>。</li>
+        <li><b>輔導收購</b>：價格次之 —— 支撐市場價格的主力（114 年起 23 → 24.5 元／公斤；1 期配額 1,200 → 2,550）。</li>
+        <li><b>餘糧收購</b>：價格最低 —— 只在市價低迷、糧商不收時才吸納。114 年起 1 期配額 3,000 → 400，由最多變成<b>最少</b>。</li>
       </ul>
       <div class="note">農民依序繳交：先填滿計畫 → 再輔導 → 最後餘糧。因此市價上升時<b>崩塌順序是倒過來的</b>：餘糧先歸零，再輪到輔導。</div>
     </div>
@@ -237,6 +255,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
         <p class="sub">99–113 年，每點為一年。年度資料上看起來是「價差越大、繳公糧比例越高」——但下方更嚴格的縣市面板顯示，這個關係<b>不穩健</b>。</p>
         <div class="plain"><b class="tag">白話講：</b>每個點是一年。點如果從左下排到右上，代表「那一年公糧比市價貴越多，農民當年繳公糧的比例也越高」；紅色虛線是幫這些點畫出的一條最貼合的直線，用來看整體方向，不代表每一年都精準落在線上。</div>
         <div class="chartbox h300"><canvas id="cScatter"></canvas></div>
+        <div class="policy"><b class="tag">政策意涵：</b>這張圖常被拿來說「調高收購價就能讓更多稻穀進公糧」，但本頁後面的嚴格檢驗顯示這個關係<b>不穩健</b>。若只用這張圖推估調價效果，會高估效益；政策試算請以下方縣市面板的結果為準。</div>
       </div>
       <div class="card">
         <h2>反例與限制</h2>
@@ -257,9 +276,11 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <p class="sub">由嚴到鬆三層檢驗：全樣本 → 同一制度（100–113 年）→ 逐年變動（差分，去除共同趨勢）。結論在越嚴格的欄位仍成立，才算站得住。</p>
       <div class="plain"><b class="tag">白話講：</b>表裡的「r」是兩個數字有多同步的分數，從 −1（完全相反）到 +1（完全同步），0 代表沒關係。「95% 信賴區間」可以想成「猜測的誤差棒」——如果這個範圍橫跨 0，就代表「其實根本沒關係」這個可能性還沒被排除，不能只看正負號就下結論。「Spearman ρ」跟 r 問的是同一件事，只是先把數字換成排名再算，比較不會被一兩個離譜的年份牽著走。「差分」則是不看「今年多少」，改看「今年比去年多了多少」——這樣可以把「兩個東西剛好一起逐年成長」這種巧合濾掉，剩下的才比較像是真的互相影響。</div>
       <div class="scroll"><table id="tStats"></table></div>
+      <div class="policy"><b class="tag">政策意涵：</b>表中跟收購量關聯最強的是<b>總產量</b>（r ≈ 0.83），不是價格。實務上，預估當年公糧收購量與預算時，產量（種植面積、單產、天候）是比價差更可靠的領先指標；價差只宜當輔助訊號。</div>
       <div class="note">99 年為舊價格制度（輔導 20 元），100 年起調升 3 元，為制度斷點，故主分析採 100–113 年。「年均」＝全年各月簡單平均；「收穫期」＝6–8 月（1 期作收購期間）平均。相關係數與單位無關。<b>95% CI</b> 以 Fisher z 轉換計算，<b>Spearman ρ</b> 為秩次相關（對離群年度較穩健）；兩者皆為描述性指標，未做多重檢定校正。</div>
       <div class="plain"><b class="tag">白話講：</b>下面這段是把「產量大小」的干擾先扣掉，只看「同樣的產量下，價差還能不能單獨解釋收購量」。「偏相關」就是扣掉干擾後剩下的關聯強度；「迴歸」則進一步給出一個具體數字：價差每多 1 元，收購量大概會多多少。後面的 t 值和門檻是在問「這個數字有沒有可能其實是巧合」——t 值沒過門檻，就代表以目前的樣本量還無法排除「巧合」這個可能。</div>
       <div class="callout" id="olsNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>扣掉產量之後，「價差每 1 元約多收 2.7 萬公噸」這個數字在統計上站不住。例如 100 年調價 3 元後收購量倍增，其中一部分是同年產量增加造成的，不能全部算成調價的功勞。任何「調價 X 元可多收 Y 公噸」的試算，都應先扣掉產量的影響，並附上不確定範圍。</div>
     </div>
     <div class="card">
       <h2>期作面板：把樣本從 14 個年度拆成 28 個期作 <span class="utag" id="uSeason"></span></h2>
@@ -272,6 +293,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       </div>
       <div class="scroll" style="margin-top:14px"><table id="tSeason"></table></div>
       <div class="note" id="seasonNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>價格訊號幾乎只出現在 2 期作；1 期作的收購量主要由產量與配額決定。若未來要用價格工具調節收購量，2 期作可能比 1 期作更有反應，依期作分別設計價格或配額值得評估。但 2 期作只有 14 筆樣本，這只能當成需要進一步驗證的方向，不能直接作為調整依據。</div>
     </div>
     <div class="card">
       <h2>縣市面板：414 筆觀測、控制縣市與期作 <span class="utag">99–113 年 · 30 期作 × 15 縣市</span></h2>
@@ -280,6 +302,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="scroll"><table id="tFE"></table></div>
       <div class="chartbox h360" style="margin-top:14px"><canvas id="cFE"></canvas></div>
       <div class="note" id="feNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>這是本站最重要的結論：在現行制度下，無法證實「價差大的縣市繳得比較多」。對政策的意思是，<b>不能假設調高收購價就會按比例增加公糧收購</b>；影響收購量更直接的槓桿是配額與資格條件。這不代表價格無效，而是現有的縣市層級公開資料量不出它的效果。若要精確評估，需要農戶層級的繳交與售價資料，建議主管機關評估開放去識別化資料供研究使用。</div>
     </div>
     <div class="card">
       <h2>把樣本往前推到民國 88 年：關係在舊制存在、在新制消失 <span class="utag">50 期作 × 16 縣市 · n=715</span></h2>
@@ -293,6 +316,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="chartbox h320" style="margin-top:6px"><canvas id="cEra"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tEra"></table></div>
       <div class="callout bad" id="eraNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>88–98 年（舊制）的經驗不能直接套用到現在：舊制估出的價格效果約是新制的十倍。若政策試算引用舊制時期、或混用新舊兩段資料的價格敏感度，會大幅高估調價效果。政策模擬應以 99 年後、與現行制度相同的資料為準。</div>
     </div>
     <div class="card">
       <h2>係數是怎麼一步步縮水的 <span class="utag">每一步只改一件事</span></h2>
@@ -302,6 +326,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="chartbox h380"><canvas id="cLadder"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="tLadder"></table></div>
       <div class="callout bad" id="ladderNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>同一份資料，只做粗略分析得到約 0.50，做完整控制後只剩約 0.05，差了十倍。審閱任何「公糧價格效果」的研究或簡報時，可以先問三個問題：有沒有控制縣市差異？有沒有控制年度衝擊？有沒有扣掉產量？三步都沒做的數字，很可能大幅高估價格的作用。</div>
     </div>
     <div class="card">
       <h2>散佈圖：逐年變動（一階差分） <span class="utag" id="uDiff"></span></h2>
@@ -309,6 +334,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="plain"><b class="tag">白話講：</b>前面的分析看的是「哪一年價差比較大」，這張圖改看「價差比去年多了多少、收購占比又比去年多了多少」——兩者若同步成長只是因為「大家逐年一起漲」，這張圖能把這種巧合濾掉。點分散在四個象限（有的價差變大占比卻變小、有的價差變小占比反而變大），代表「價差變大的年度，占比未必跟著變大」，關聯比原本水準值上看起來的鬆散許多。</div>
       <div class="chartbox h340"><canvas id="cDiff"></canvas></div>
       <div class="note" id="diffNote"></div>
+      <div class="policy"><b class="tag">政策意涵：</b>價差和收購占比之間的關聯，有一部分只是兩者剛好一起隨時間變動。評估某一次調價的效果時，應看調價前後的<b>變化</b>，並和同期沒有調價的情況比較，而不是看調價那年的數字高低。</div>
     </div>
     <div class="card">
       <h2>散佈圖：餘糧價差 vs 1 期餘糧收購量 <span class="utag" id="uSur"></span></h2>
@@ -316,6 +342,7 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
       <div class="plain"><b class="tag">白話講：</b>橫軸是「繳餘糧划不划算」（越往右越划算），縱軸是「當年 1 期繳了多少餘糧」。如果價格是唯一原因，點應該乾淨地由左下排到右上；紅點是明顯不照這個劇本走的年份（例如價差已經是負的，農民卻還是繳了不少），代表除了價格，還有其他本站資料量不出來的因素在起作用。</div>
       <div class="chartbox h340"><canvas id="cSurplus"></canvas></div>
       <div class="note" id="surNote"></div>
+        <div class="policy"><b class="tag">政策意涵：</b>即使繳餘糧不划算，過去每年 1 期仍有 5–8 萬公噸進餘糧，表示農民繳餘糧不只看價格，可能看重付款確定、就近交售或品質不被挑剔。114 年起餘糧幾乎消失：原本依賴這條「確定賣得掉」出路的農民，現在賣給誰、價格如何，是改制後值得追蹤的問題。本站資料無法回答，需要實地訪查或糧商收購資料。</div>
       <div class="callout bad" id="surContrast"></div>
     </div>
   </section>
@@ -881,6 +908,17 @@ function drawPeriod() {
     <br><br>114 年改制同時動了三件事：餘糧配額 3,000→400、輔導配額 1,200→2,550、輔導價 23→24.5。
     <b>本站的資料無法把這三者分開</b>；目前可以確定的是「總量不變、結構反轉」，
     以及「餘糧的消失不是因為它的配額被用滿」。其餘留白。`;
+
+  // 支出估算＝Σ 級距收購量 ×（稉種公告價 ＋ 2 元補助）；以 113 年官方支出校準
+  const pay = (r, guid) => ((26 + DATA.sub) * r.plan + (guid + DATA.sub) * r.asst + (21.6 + DATA.sub) * r.surplus) / 1e5;   // 公噸×元/公斤 → 億元
+  const avgP = (r, guid) => (26 * r.plan + guid * r.asst + 21.6 * r.surplus) / (r.plan + r.asst + r.surplus);
+  const c113 = pay(R.before, 23), c114 = pay(R.after, 24.5), off113 = DATA.tab33.find(t => t.y === 113).cost;
+  $('#reformPolicy').innerHTML = `<b class="tag">政策意涵：</b>改制的<b>財政成本</b>在於單價：以公告價加權，每公斤平均收購價由
+    <b>${avgP(R.before, 23).toFixed(2)}</b> 升到 <b>${avgP(R.after, 24.5).toFixed(2)} 元</b>（+${((avgP(R.after, 24.5) / avgP(R.before, 23) - 1) * 100).toFixed(1)}%）。
+    在總量略降的情況下，估算收購支出（含 2 元補助）由 ${c113.toFixed(1)} 億元增至 <b>${c114.toFixed(1)} 億元</b>（+${(c114 - c113).toFixed(1)} 億）。
+    同樣方法估 113 年得 ${c113.toFixed(1)} 億，官方實際為 ${off113.toFixed(2)} 億，兩者幾乎一致；114 年官方支出尚未公布。
+    也就是說，<b>收的量差不多，但政府多付了錢</b>，多付的部分流向原本會走餘糧、現在改走計畫與輔導的稻穀。
+    評估改制成效時，應把這筆增支和它要達成的目標（穩定農民收入）放在一起檢視。（以稉種價計；秈糯每公斤少 1 元、占比不到 2%，影響很小。）`;
 
   const p1r = (R.p1.after / R.p1.before - 1) * 100;
   $('#quotaNote') && ($('#quotaNote').innerHTML += `<br><b>114 年實證</b>：1 期作合計 ${fraw(R.p1.before, 0)} → ${fraw(R.p1.after, 0)} 公噸（${p1r.toFixed(1)}%），
