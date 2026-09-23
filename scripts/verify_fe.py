@@ -1,7 +1,8 @@
 """從 data/county_panel.csv 獨立重跑縣市面板迴歸，核對 index.html 內寫死的常數。
 
-預期值直接讀 index.html 的 COUNTY_FE / LADDER / ERA / WR2 / WCB，頁面改了數字而沒重算就會報錯。
+預期值直接讀 index.html 的 COUNTY_FE / LADDER / ERA / WR2 / WCB / ITS / ROBUST，頁面改了數字而沒重算就會報錯。
 模型：ln(收購量[/產量]) ~ 輔導價差 + 固定效果，標準誤依縣市群聚（CR1）。
+ITS：面板縣市合計的計畫＋輔導收購占比，對 100 年調價做中斷時間序列（Newey-West SE）與假政策年檢定。
 執行：python3 scripts/verify_fe.py（需 pandas、numpy）。
 """
 import itertools
@@ -15,7 +16,7 @@ import pandas as pd
 ROOT = Path(__file__).parent.parent
 html = (ROOT / 'index.html').read_text(encoding='utf8')
 page = {k: json.loads(re.search(rf'^const {k} = (.+?);\s*$', html, re.M).group(1))
-        for k in ('COUNTY_FE', 'LADDER', 'ERA', 'WR2', 'WCB')}
+        for k in ('COUNTY_FE', 'LADDER', 'ERA', 'WR2', 'WCB', 'ITS', 'ROBUST')}
 
 d = pd.read_csv(ROOT / 'data' / 'county_panel.csv')
 d.columns = ['y', 'p', 'c', 'mk', 'gp', 'gap', 'pa', 'sur', 'prod', 'share']
@@ -23,6 +24,7 @@ d['per'] = d.y.astype(str) + '-' + d.p.astype(str)
 d['new'] = (d.y >= 99).astype(float)
 d['gxn'] = d.gap * d.new                      # 交互作用：新制 × 價差
 d['cxe'] = d.c + '_' + d.new.astype(str)      # 縣市 × 時期 FE（99 年縣市改制）
+d['gr'] = d.gap / d.mk * 100                  # 價差率（%）：價差 ÷ 收穫期市價
 
 new = d[(d.y >= 99) & (d.y <= 113)]
 old = d[d.y <= 98]
@@ -92,6 +94,32 @@ def wild_boot_p(df, fes, xs=('gap',), j=0):
     return hits / len(signs)
 
 
+
+def its(df, K, lag=3, ctrl=()):
+    """中斷時間序列：占比 ~ 常數 + 2 期作 + (年−K) + 政策後 + 政策後×(年−K)。
+
+    回傳 n、自由度、係數向量，以及「政策後」水準跳升與斜率變化的 Newey-West SE（Bartlett，lag 3）。
+    """
+    df = df.sort_values(['y', 'p'])
+    t, post = (df.y - K).values, (df.y >= K).values.astype(float)
+    X = np.column_stack([np.ones(len(df)), (df.p == 2).values, t, post, post * t] + [df[c].values for c in ctrl])
+    Y = df.sh.values
+    n, k = X.shape
+    XtXi = np.linalg.inv(X.T @ X)
+    b = XtXi @ X.T @ Y
+    u = X * (Y - X @ b)[:, None]
+    S = u.T @ u
+    for l in range(1, lag + 1):
+        G = u[l:].T @ u[:-l]
+        S += (1 - l / (lag + 1)) * (G + G.T)
+    V = XtXi @ S @ XtXi * n / (n - k)
+    return n, n - k, b, np.sqrt(V[3, 3]), np.sqrt(V[4, 4])
+
+
+# 面板縣市合計的期作序列（88、90–113 年；89 年從缺）。市價取各縣市收穫期市價的簡單平均。
+agg = d[d.y <= 113].groupby(['y', 'p']).agg(pa=('pa', 'sum'), prod=('prod', 'sum'), mk=('mk', 'mean')).reset_index()
+agg['sh'] = agg.pa / agg['prod'] * 100
+
 fails = []
 
 
@@ -158,6 +186,36 @@ for df, m in zip([old, new], [x['m'] for x in page['ERA']['desc']]):
     check(f'{tag} 占比變異係數', df.share.std() / df.share.mean(), m['cv'], 5e-3)
     check(f'{tag} 價差中位數', df.gap.median(), m['gapMed'], 5e-3)
     check(f'{tag} 價差為負 %', (df.gap < 0).mean() * 100, m['negPct'], 0.05)
+
+# 5. 100 年中斷時間序列＋假政策年（ITS）
+I = page['ITS']
+for m, ctrl in zip(I['main'], [(), ('mk',)]):
+    n, df_, b, se, sse = its(agg, 100, ctrl=ctrl)
+    check(f"ITS {m['l']} 跳升", b[3], m['b'], 5e-3)
+    check(f"ITS {m['l']} SE", se, m['se'], 5e-3)
+    check(f"ITS {m['l']} 斜率變化", b[4], m['s'], 5e-3)
+    check(f"ITS {m['l']} n", n, m['n'], 0.5)
+seg = {'pre': agg[agg.y <= 99], 'post': agg[agg.y >= 100]}
+for m in I['placebo']:
+    n, _, b, se, _ = its(seg[m['seg']], m['K'])
+    check(f"假政策年 {m['K']} 跳升", b[3], m['b'], 5e-3)
+    check(f"假政策年 {m['K']} SE", se, m['se'], 5e-3)
+check('ITS 期作點數', len(agg), len(I['pts']), 0.5)
+
+# 6. 留一年度＋價差率（ROBUST）
+samples = {'new': new, 'old': old, 'both': both}
+for r in page['ROBUST']:
+    base = ln_y(samples[r['k']], 'pa')
+    for m in r['loo']:
+        x = base[base.y != m['y']]
+        _, _, [(b, se)] = reg(x, FE2)
+        check(f"留一 {r['k']} 剔除 {m['y']} β", b, m['b'])
+        check(f"留一 {r['k']} 剔除 {m['y']} SE", se, m['se'])
+        check(f"留一 {r['k']} 剔除 {m['y']} bootstrap p", wild_boot_p(x, FE2), m['p'], 5e-3)
+    _, _, [(b, se)] = reg(base, FE2, xs=('gr',))
+    check(f"價差率 {r['k']} β", b, r['ratio']['b'])
+    check(f"價差率 {r['k']} SE", se, r['ratio']['se'])
+    check(f"價差率 {r['k']} bootstrap p", wild_boot_p(base, FE2, xs=('gr',)), r['ratio']['p'], 5e-3)
 
 print(f'\n{len(fails)} 項不符：{fails}' if fails else '\n全部與 index.html 相符')
 raise SystemExit(1 if fails else 0)
