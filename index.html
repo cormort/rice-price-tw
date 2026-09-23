@@ -338,8 +338,8 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);fon
     </div>
     <div class="card">
       <h2>散佈圖：餘糧價差 vs 1 期餘糧收購量 <span class="utag" id="uSur"></span></h2>
-      <p class="sub">100–113 年，市價採收穫期（6–8 月）稉種平均。紅點為價格解釋不了的年度。</p>
-      <div class="plain"><b class="tag">白話講：</b>橫軸是「繳餘糧划不划算」（越往右越划算），縱軸是「當年 1 期繳了多少餘糧」。如果價格是唯一原因，點應該乾淨地由左下排到右上；紅點是明顯不照這個劇本走的年份（例如價差已經是負的，農民卻還是繳了不少），代表除了價格，還有其他本站資料量不出來的因素在起作用。</div>
+      <p class="sub">100–113 年，市價採收穫期（6–8 月）稉種平均。虛線為迴歸線；紅點為離迴歸線特別遠（學生化殘差 |r| ≥ 2）的年度。</p>
+      <div class="plain"><b class="tag">白話講：</b>橫軸是「繳餘糧划不划算」（越往右越划算），縱軸是「當年 1 期繳了多少餘糧」。虛線是依價差畫出的「預期收購量」。紅點是離這條線特別遠的年份：收得比價差預期的多很多或少很多，代表那一年除了價格，還有其他本站資料量不出來的因素在起作用。另外注意虛線在價差為 0 時並沒有掉到 0：就算繳餘糧不划算，每年仍有一定的底量。</div>
       <div class="chartbox h340"><canvas id="cSurplus"></canvas></div>
       <div class="note" id="surNote"></div>
         <div class="policy"><b class="tag">政策意涵：</b>即使繳餘糧不划算，過去每年 1 期仍有 5–8 萬公噸進餘糧，表示農民繳餘糧不只看價格，可能看重付款確定、就近交售或品質不被挑剔。114 年起餘糧幾乎消失：原本依賴這條「確定賣得掉」出路的農民，現在賣給誰、價格如何，是改制後值得追蹤的問題。本站資料無法回答，需要實地訪查或糧商收購資料。</div>
@@ -1090,19 +1090,29 @@ function drawScatter() {
      <div class="d" style="color:#63696f;font-weight:400">${note}</div></div>`).join('');
 
   // 餘糧散佈圖
-  const OUT = [100, 103, 113];
-  const sp = G.map(d => ({x: du(V.sgapH(d)), y: V.s1(d), y2: d.y}));
+  // 離群年份由殘差決定：OLS（1 期餘糧量 ~ 收穫期餘糧價差）的內部學生化殘差 |r| ≥ 2
+  const sx = G.map(V.sgapH), sy = G.map(V.s1), sn = sx.length, smx = avg(sx), smy = avg(sy);
+  const sxx = sx.reduce((t, v) => t + (v - smx) ** 2, 0);
+  const sb = sx.reduce((t, v, i) => t + (v - smx) * (sy[i] - smy), 0) / sxx, sa = smy - sb * smx;
+  const se_ = sy.map((v, i) => v - sa - sb * sx[i]), ss = Math.sqrt(se_.reduce((t, e) => t + e * e, 0) / (sn - 2));
+  const stud = se_.map((e, i) => e / (ss * Math.sqrt(1 - 1 / sn - (sx[i] - smx) ** 2 / sxx)));
+  const OUT = G.filter((d, i) => Math.abs(stud[i]) >= 2).map(d => d.y);
+  const sp = G.map((d, i) => ({x: du(sx[i]), y: sy[i], y2: d.y, e: se_[i], r: stud[i]}));
+  const sx0 = Math.min(...sx), sx1 = Math.max(...sx);
   $('#uSur').textContent = '（' + UL() + '）';
   mk('cSurplus', {type: 'scatter', data: {datasets: [{label: '各年度', data: sp,
-      backgroundColor: sp.map(p => OUT.includes(p.y2) ? '#c0392b' : '#1f6feb'), pointRadius: 6, pointHoverRadius: 8}]},
+      backgroundColor: sp.map(p => OUT.includes(p.y2) ? '#c0392b' : '#1f6feb'), pointRadius: 6, pointHoverRadius: 8},
+      {label: '迴歸線', type: 'line', data: [{x: du(sx0), y: sa + sb * sx0}, {x: du(sx1), y: sa + sb * sx1}],
+        borderColor: '#63696f', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, fill: false}]},
     plugins: [{id: 'yrLbl', afterDatasetsDraw(c) { const {ctx} = c; ctx.save();
       const P = labelPlacer(ctx, '11px system-ui, sans-serif'); ctx.fillStyle = '#63696f';
       const meta = c.getDatasetMeta(0).data;
       meta.forEach((pt, i) => P.addPoint(pt.x, pt.y, 6));
-      meta.forEach((pt, i) => P.draw(String(sp[i].y2), pt.x, pt.y, i));
+      meta.forEach((pt, i) => P.draw(String(sp[i].y2), pt.x, pt.y, i, c.chartArea));
       ctx.restore(); }}],
     options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false},
-        tooltip: {callbacks: {label: (c) => ` ${rocYear(c.raw.y2)}：價差 ${fraw(c.raw.x, DP())} ／ 1 期餘糧 ${fraw(c.raw.y, 0)} 公噸`}}},
+        tooltip: {filter: (c) => c.datasetIndex === 0, callbacks: {label: (c) => [` ${rocYear(c.raw.y2)}：價差 ${fraw(c.raw.x, DP())} ／ 1 期餘糧 ${fraw(c.raw.y, 0)} 公噸`,
+          ` 比迴歸線${c.raw.e >= 0 ? '多' : '少'} ${fraw(Math.abs(c.raw.e), 0)} 公噸（學生化殘差 ${c.raw.r.toFixed(2)}）`]}}},
       scales: {x: {title: {display: true, text: `餘糧含補助名目價 − 收穫期市價（${UL()}）`, font: {size: 11.5}}, ticks: {font: {size: 11}},
           grid: {color: (ctx) => ctx.tick.value === 0 ? 'rgba(192,57,43,.55)' : 'rgba(0,0,0,.06)'}},
         y: {beginAtZero: true, title: {display: true, text: '1 期餘糧收購量（公噸）', font: {size: 11.5}}, ticks: {font: {size: 11}}}}}});
@@ -1121,9 +1131,13 @@ function drawScatter() {
     這也是為什麼本站不把全國層級的 r = ${surNat.toFixed(2)} 當作「價格有效」的證據：
     <b>它很可能是在度量「年份」，而不是在度量「價格」。</b>`;
 
-  const f = (y) => { const d = G.find(z => z.y === y); return `${y} 年價差 ${fu(V.sgapH(d))}、收 ${fraw(V.s1(d), 0)} 公噸`; };
-  $('#surNote').innerHTML = `離群點：${OUT.map(f).join('；')}（100 年為新制第一年）。
-    價差為負或接近 0 時，1 期餘糧仍有 5–8 萬公噸的<b>底量</b> —— 可能與糧商收購意願、品質等級、交易便利或付款確定性有關，現有資料無法區分。
+  const f = (y) => { const p = sp.find(z => z.y2 === y);
+    return `<b>${y} 年</b>（價差 ${fu(V.sgapH(G.find(z => z.y === y)))}、收 ${fraw(p.y, 0)} 公噸，比迴歸線${p.e >= 0 ? '多' : '少'} ${fraw(Math.abs(p.e) / 1e4, 1)} 萬公噸）`; };
+  $('#surNote').innerHTML = `<b>離群年份怎麼挑</b>：先畫一條最貼合的直線（虛線），再看每年離線多遠；
+    「學生化殘差」絕對值 ≥ 2（約等於偏離一般年份兩個標準差）才標紅。本期間符合的是 ${OUT.length ? OUT.map(f).join('、') : '無'}。
+    100 年是新制第一年（公糧價剛調升 3 元），108 年則落在 107–109 年市價低迷期。
+    <br>直線在價差為 0 時仍有約 <b>${fraw(sa / 1e4, 1)} 萬公噸</b>：即使繳餘糧不比賣市場划算，1 期餘糧仍有這樣的<b>底量</b>，
+    可能與糧商收購意願、品質等級、交易便利或付款確定性有關，現有資料無法區分。
     <br><b>114 年起餘糧降到數百公噸，本站不宣稱知道原因。</b>配額確實在 114 年起由 3,000 降到 400 公斤/公頃，
     但 115 年 1 期實際只用掉配額上限的 2.4%（見「分級機制」頁），<b>配額並沒有被用滿</b>；
     價差則從 113 年的 ${fu(V.sgapH(G.find(z => z.y === 113)))} 擴大到 115 年的 ${fu(DATA.tiers[2].eff - DATA.tiersMarket)}，
