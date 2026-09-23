@@ -51,7 +51,7 @@ GitHub Pages：https://cormort.github.io/rice-price-tw/
 
 ## 驗證
 
-`python3 scripts/verify_fe.py`：從 `data/county_panel.csv` 獨立重跑縣市固定效果迴歸（縣市群聚 SE），直接讀取 `index.html` 內的 `COUNTY_FE`、`LADDER`、`ERA`、`WR2` 常數逐一核對（β／SE／n／群數、交互作用項、組內 R²、時代描述統計）；不符即報錯。需 pandas、numpy。
+`python3 scripts/verify_fe.py`：從 `data/county_panel.csv` 獨立重跑縣市固定效果迴歸（縣市群聚 SE），直接讀取 `index.html` 內的 `COUNTY_FE`、`LADDER`、`ERA`、`WR2`、`WCB` 常數逐一核對（β／SE／n／群數、交互作用項、組內 R²、時代描述統計、wild cluster bootstrap p 值）；不符即報錯。需 pandas、numpy。
 
 ## 授權
 

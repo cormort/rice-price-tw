@@ -1,9 +1,10 @@
 """從 data/county_panel.csv 獨立重跑縣市面板迴歸，核對 index.html 內寫死的常數。
 
-預期值直接讀 index.html 的 COUNTY_FE / LADDER / ERA / WR2，頁面改了數字而沒重算就會報錯。
+預期值直接讀 index.html 的 COUNTY_FE / LADDER / ERA / WR2 / WCB，頁面改了數字而沒重算就會報錯。
 模型：ln(收購量[/產量]) ~ 輔導價差 + 固定效果，標準誤依縣市群聚（CR1）。
 執行：python3 scripts/verify_fe.py（需 pandas、numpy）。
 """
+import itertools
 import json
 import re
 from pathlib import Path
@@ -14,7 +15,7 @@ import pandas as pd
 ROOT = Path(__file__).parent.parent
 html = (ROOT / 'index.html').read_text(encoding='utf8')
 page = {k: json.loads(re.search(rf'^const {k} = (.+?);\s*$', html, re.M).group(1))
-        for k in ('COUNTY_FE', 'LADDER', 'ERA', 'WR2')}
+        for k in ('COUNTY_FE', 'LADDER', 'ERA', 'WR2', 'WCB')}
 
 d = pd.read_csv(ROOT / 'data' / 'county_panel.csv')
 d.columns = ['y', 'p', 'c', 'mk', 'gp', 'gap', 'pa', 'sur', 'prod', 'share']
@@ -58,6 +59,37 @@ def within_r2(df, fes):
     D = np.column_stack([np.ones(len(df)), fe_matrix(df, fes)])
     resid = lambda v: v - D @ np.linalg.lstsq(D, v, rcond=None)[0]
     return np.corrcoef(resid(df.Y.values), resid(df.gap.values.astype(float)))[0, 1] ** 2
+
+
+def wild_boot_p(df, fes, xs=('gap',), j=0):
+    """限制型 wild cluster bootstrap（WCR-C）的雙尾 p 值，H0：第 j 個 x 的係數 = 0。
+
+    群數只有 15～16，直接窮舉全部 2^G 組 Rademacher 權重（±1），結果精確、不含隨機性。
+    """
+    X = np.column_stack([np.ones(len(df)), df[list(xs)].values, fe_matrix(df, fes)])
+    Y = df.Y.values
+    g = pd.factorize(df.c)[0]
+    G = g.max() + 1
+    n, k = X.shape
+    XtXi = np.linalg.pinv(X.T @ X)
+    A, col = XtXi @ X.T, 1 + j
+    q = X @ XtXi[:, col]                      # β_col 的 CR1 變異數 = adj · Σ_g (Σ_{i∈g} q_i e_i)²
+    adj = G / (G - 1) * (n - 1) / (n - k)
+
+    def t_of(Ys):                             # Ys：n × R，一次算 R 組
+        E = Ys - X @ (A @ Ys)
+        S = np.zeros((G, Ys.shape[1]))
+        np.add.at(S, g, q[:, None] * E)
+        return (A[col] @ Ys) / np.sqrt(adj * (S ** 2).sum(0))
+
+    t0 = t_of(Y[:, None])[0]
+    Xr = np.delete(X, col, axis=1)            # 在 H0 下估計，取擬合值與殘差
+    fit = Xr @ np.linalg.lstsq(Xr, Y, rcond=None)[0]
+    u = Y - fit
+    signs = np.array(list(itertools.product([-1.0, 1.0], repeat=G)))
+    hits = sum((np.abs(t_of(fit[:, None] + signs[s:s + 4096].T[g] * u[:, None])) >= abs(t0) - 1e-12).sum()
+               for s in range(0, len(signs), 4096))
+    return hits / len(signs)
 
 
 fails = []
@@ -110,6 +142,14 @@ check('交互作用 新制−舊制', dx, it['dx'])
 check('交互作用 SE', dxse, it['dxse'])
 _, _, [_, (dx2, dxse2)] = reg(ln_y(both, 'pa'), FE2, xs=('gap', 'gxn'))
 check('共用縣市 FE 的交互作用 t（頁面文字）', dx2 / dxse2, -1.17, 5e-3)
+
+# 3b. wild cluster bootstrap p 值（WCB）
+wcb = page['WCB']
+check('bootstrap p 舊制', wild_boot_p(ln_y(old, 'pa'), FE2), wcb['old'])
+check('bootstrap p 新制', wild_boot_p(ln_y(new, 'pa'), FE2), wcb['new'])
+check('bootstrap p 合併', wild_boot_p(ln_y(both, 'pa'), FE2), wcb['pooled'])
+check('bootstrap p 舊 20 期作子集', wild_boot_p(ln_y(s20, 'pa'), FE2), wcb['s20'])
+check('bootstrap p 交互作用', wild_boot_p(ln_y(both, 'pa'), ['cxe', 'per'], xs=('gap', 'gxn'), j=1), wcb['inter'])
 
 # 4. 時代描述統計（ERA.desc）
 for df, m in zip([old, new], [x['m'] for x in page['ERA']['desc']]):
